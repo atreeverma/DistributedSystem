@@ -1,6 +1,6 @@
 import express from "express";
 import { validationResult } from "express-validator";
-import { transferMoney } from "../controllers/transactionController.js";
+import { transferMoney } from "../controllers/transactionController.controller.js";
 import { validateTransfer } from "../middleware/transfervalidate.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";

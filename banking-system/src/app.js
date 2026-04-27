@@ -1,6 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
-import transactionRoutes from "./routes/transactionRoutes.js";
+import transactionRoutes from "./routes/transactionRoutes.routes.js";
 import { ApiResponse } from "./utils/ApiResponse.js";
 
 dotenv.config();

@@ -1,4 +1,4 @@
-import { initiateTransaction } from "../services/transactionService.js";
+import { initiateTransaction } from "../services/transactionService.services.js";
 import { ApiResponse } from "../utils/ApiResponse.js"
 export async function transferMoney(req, res) {
     const { fromAccount, toAccount, amount } = req.body;
