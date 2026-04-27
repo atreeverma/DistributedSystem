@@ -4,7 +4,9 @@
   "description": "",
   "main": "src/app.js",
   "scripts": {
-    "test": "node test/transaction.test.js"
+    "test": "node test/transaction.test.js",
+    "dev": "nodemon src/app.js",
+    "start": "node src/app.js"
   },
   "keywords": [],
   "author": "Atree Verma",
@@ -17,5 +19,8 @@
     "express-validator": "^7.3.2",
     "pg": "^8.20.0",
     "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }
