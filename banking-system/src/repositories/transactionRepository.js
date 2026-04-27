@@ -8,13 +8,13 @@ export async function findByIdempotencyKey(key) {
     return res.rows[0];
 }
 
-export async function createTransaction(client,data) {
-    const {id,from_account,to_account,amount,idempotency_key} = data;
+export async function createTransaction(client, data) {
+    const { id, fromAccount, toAccount, amount, idempotencyKey } = data;
     const res = await client.query(
-        `INSERT INTO tranctions (id,from_account,to_account,amount,idempotency_key,status)
+        `INSERT INTO transactions (id,from_account,to_account,amount,idempotency_key,status)
         VALUES ($1,$2,$3,$4,$5,'PENDING')
         RETURNING *`,
-        [id,from_account,to_account,amount,idempotency_key]
+        [id, fromAccount, toAccount, amount, idempotencyKey]
     )
     return res.rows[0];
 }

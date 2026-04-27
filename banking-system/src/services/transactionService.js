@@ -1,4 +1,4 @@
-import { v4 as uuidv4, v4} from "uuid"
+import { v4 as uuidv4 } from "uuid"
 import { pool } from "../config/db.js"
 import {
     findByIdempotencyKey,
@@ -41,7 +41,7 @@ export async function initiateTransaction({
         )
         
         const transaction = await createTransaction(client,{
-            id: v4(),
+            id: uuidv4(),
             fromAccount,
             toAccount,
             amount,
