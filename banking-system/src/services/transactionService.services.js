@@ -1,10 +1,12 @@
 import { v4 as uuidv4 } from "uuid"
 import { pool } from "../config/db.js"
+import { ApiError } from "../utils/ApiError.js";
 import {
     findByIdempotencyKey,
     createTransaction
 } from "../repositories/transactionRepository.js";
 import { getAccountById } from "../repositories/accountRepository.js";
+import { createOutboxEvent } from "../repositories/outboxRepository.js";
 export async function initiateTransaction({
     fromAccount,
     toAccount,
@@ -19,26 +21,14 @@ export async function initiateTransaction({
         await client.query("BEGIN")
 
         const senderRes = await client.query(
-            "SELECT * FROM accounts WHERE id = $1 FOR UPDATE",[fromAccount]
+            "SELECT * FROM accounts WHERE id = $1",[fromAccount]
         )
         const sender = senderRes.rows[0]
-        if(!sender) throw new Error("Sender not found")
-        if(sender.balance < amount) throw new Error("Insufficient balance")
+        if(!sender) throw new ApiError(404,"Sender not found")
+        if(sender.balance < amount) throw new ApiError(400,"Insufficient balance")
         
         const receiver = await getAccountById(client,toAccount)
-        if(!receiver) throw new Error("Receiver not found")
-        
-        // 💸 Debit sender account
-        await client.query(
-            "UPDATE accounts SET balance = balance - $1 WHERE id = $2",
-            [amount, fromAccount]
-        )
-
-        // 💰 Credit receiver account
-        await client.query(
-            "UPDATE accounts SET balance = balance + $1 WHERE id = $2",
-            [amount, toAccount]
-        )
+        if(!receiver) throw new ApiError(404,"Receiver not found")
         
         const transaction = await createTransaction(client,{
             id: uuidv4(),
@@ -47,13 +37,30 @@ export async function initiateTransaction({
             amount,
             idempotencyKey
         })
-        await client.query("COMMIT")
 
+        await createOutboxEvent(client, {
+            eventType: "TRANSACTION_CREATED",
+            aggregateId: transaction.id,
+            payload: {
+                eventType: "TRANSACTION_CREATED",
+                transactionId: transaction.id,
+                fromAccount,
+                toAccount,
+                amount
+            }
+        });
+
+        await client.query("COMMIT")
         return transaction
-        
     } catch (error) {
         await client.query("ROLLBACK")
-        throw error
+
+        if (error.code === "23505") {
+            const existing = await findByIdempotencyKey(idempotencyKey)
+            if(existing) return existing
+        }
+
+        throw new ApiError(error.statusCode || 500, error.message || "Transaction failed")
     } finally{
         client.release()
     }

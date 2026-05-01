@@ -2,6 +2,10 @@ import express from "express";
 import dotenv from "dotenv";
 import transactionRoutes from "./routes/transactionRoutes.routes.js";
 import { ApiResponse } from "./utils/ApiResponse.js";
+import { connectQueue } from "./queue/producer.js";
+import { startOutboxDispatcher } from "./queue/outboxDispatcher.js";
+import { ensureOutboxTable } from "./repositories/outboxRepository.js";
+import { ensureTransactionIdempotencyConstraint } from "./repositories/transactionRepository.js";
 
 dotenv.config();
 
@@ -31,14 +35,25 @@ app.use((err, req, res, next) => {
     res.status(statusCode).json(new ApiResponse(statusCode, message, null));
 });
 
-// Start Server
-const PORT = process.env.PORT || 3000;
+async function startServer() {
+    const PORT = process.env.PORT || 3000;
 
-if (!PORT) {
-    console.error("PORT not defined in .env");
-    process.exit(1);
+    if (!PORT) {
+        console.error("PORT not defined in .env");
+        process.exit(1);
+    }
+
+    await ensureOutboxTable();
+    await ensureTransactionIdempotencyConstraint();
+    await connectQueue();
+    startOutboxDispatcher();
+
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
 }
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+startServer().catch((error) => {
+    console.error(`Failed to start server: ${error.message}`);
+    process.exit(1);
 });

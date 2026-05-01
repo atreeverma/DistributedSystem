@@ -13,11 +13,11 @@ export async function transferMoney(req, res) {
         );
     }
     const idempotencyKey = req.headers["idempotency-key"];
-
+    
     if (!idempotencyKey) {
         return res.status(400).json( new ApiResponse(400, "Idempotency key required", null));
     }
-
+    
     const transaction = await initiateTransaction({
         fromAccount,
         toAccount,

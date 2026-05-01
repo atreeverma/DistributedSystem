@@ -18,3 +18,21 @@ export async function createTransaction(client, data) {
     )
     return res.rows[0];
 }
+
+export async function updateTransactionStatus(id, status) {
+    const res = await pool.query(
+        `UPDATE transactions
+         SET status = $1
+         WHERE id = $2
+         RETURNING *`,
+        [status, id]
+    );
+    return res.rows[0];
+}
+
+export async function ensureTransactionIdempotencyConstraint() {
+    await pool.query(
+        `CREATE UNIQUE INDEX IF NOT EXISTS transactions_idempotency_key_unique
+         ON transactions (idempotency_key)`
+    );
+}
