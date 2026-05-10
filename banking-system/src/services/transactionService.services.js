@@ -13,6 +13,10 @@ export async function initiateTransaction({
     amount,
     idempotencyKey
 }) {
+    if (fromAccount === toAccount) {
+        throw new ApiError(400, "Sender and receiver accounts cannot be same")
+    }
+
     const existing = await findByIdempotencyKey(idempotencyKey)
     if(existing) return existing
 

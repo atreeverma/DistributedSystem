@@ -1,0 +1,91 @@
+\documentclass[12pt]{resume}
+\usepackage{fontawesome5}
+\usepackage[left=0.6in,top=0.6in,right=0.6in,bottom=0.6in]{geometry}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+\usepackage{lmodern}
+\usepackage{tabularx}
+
+\renewcommand{\familydefault}{\rmdefault}
+
+\newcommand{\resumeItemListStart}{\begin{itemize}[leftmargin=0.5cm]}
+\newcommand{\resumeItemListEnd}{\end{itemize}}
+\newcommand{\resumeItem}[1]{\item\small{#1\vspace{-2pt}}}
+
+\name{Atree Verma}
+\address{+91-7049487950 \\ Indore, India}
+\address{\href{mailto:atreeverma17@gmail.com}{atreeverma17@gmail.com} \\
+\underline{\href{https://www.linkedin.com/in/atree-verma-9a005a292/}{linkedin.com/in/atree-verma}} \\
+\underline{\href{https://github.com/atreeverma}{github.com/atreeverma}}}
+
+\begin{document}
+
+%-------------------------------------------
+\begin{rSection}{Education}
+
+\textmd{Institute of Engineering and Technology, DAVV} \hfill Indore, M.P. \\
+\textit{B.E. in Information Technology} \hfill \textit{Sept 2023 -- Present} \\
+CGPA: 8.12/10.0
+
+\vspace{0.1em}
+
+\textmd{Christ Church Boys' Senior Secondary School} \hfill Jabalpur, M.P. \\
+\textit{Class XII (CBSE)} \hfill \textit{2023} \\
+Score: 80\%
+
+\textit{Class X (CBSE)} \hfill \textit{2021} \\
+Score: 87.6\%
+
+\end{rSection}
+
+%-------------------------------------------
+\begin{rSection}{Technical Skills}
+
+\textmd{Languages:} JavaScript (ES6+), C++, SQL, HTML5, CSS3 \\
+\textmd{Frameworks \& Libraries:} Node.js, Express.js, React.js, Redux \\
+\textmd{Databases:} PostgreSQL, MongoDB \\
+\textmd{Message Queues:} RabbitMQ \\
+\textmd{APIs:} REST APIs \\
+\textmd{Backend Concepts:} Authentication \& Authorization, Middleware, Idempotency, Transactions, Transactional Outbox, Fault Tolerance, Retry Handling \\
+\textmd{Developer Tools:} Git, VS Code, npm, Postman, Docker
+
+\end{rSection}
+
+%-------------------------------------------
+\begin{rSection}{Projects}
+
+\textbf{Distributed Banking System \;|\; Node.js, Express.js, PostgreSQL, RabbitMQ} \hfill \textit{Backend}
+\begin{itemize}
+\renewcommand\labelitemi{--}
+    \item Built a fault-tolerant banking service for account-to-account transactions using idempotency keys to prevent duplicate transfers.
+    \item Implemented PostgreSQL transactions and row-level locking for reliable transaction creation, concurrency control, and event processing.
+    \item Integrated RabbitMQ with the transactional outbox pattern, retry handling, and reconnection support for durable asynchronous event publishing.
+\end{itemize}
+
+\textbf{Video Streaming Platform \;|\; React.js, Node.js, Express.js, MongoDB} \hfill \textit{Full-Stack}
+\begin{itemize}
+\renewcommand\labelitemi{--}
+    \item Engineered a full-stack platform with JWT-based authentication, including secure login, refresh tokens, and protected routes.
+    \item Designed RESTful APIs using Express.js and Mongoose for efficient data handling and communication.
+    \item Integrated Cloudinary for media storage, optimizing video upload and delivery.
+\end{itemize}
+
+\end{rSection}
+
+%-------------------------------------------
+\begin{rSection}{Achievements}
+\begin{itemize}[leftmargin=0.5cm]
+
+\item \textmd{LeetCode:} \textmd{Max Contest Rating: 1424} \href{https://leetcode.com/u/atreeverma/}{(Link)}\\
+Solved 400+ Data Structures \& Algorithms problems on various platforms, demonstrating strong problem-solving skills with focus on time and space optimization.
+
+\item \textmd{Smart India Hackathon 2025} \hfill \textit{Sept 2025} \\
+\textit{Ministry of Education Innovation Cell (MHRD), India}
+\begin{itemize}
+    \item Selected participant in SIH 2025 (Software Edition) for developing ``RuralConnect'', a rural public transport accessibility platform.
+\end{itemize}
+
+\end{itemize}
+\end{rSection}
+
+\end{document}

@@ -9,8 +9,8 @@ let dispatcherTimer;
 let isDispatching = false;
 
 async function dispatchPendingOutboxEvents() {
-    if (isDispatching) return;
-    isDispatching = true;
+    if (isDispatching) return;//if the events are already being dispatched, return
+    isDispatching = true;//set the isDispatching flag to true
 
     try {
         const events = await fetchPendingOutboxEvents(20);
@@ -29,9 +29,9 @@ async function dispatchPendingOutboxEvents() {
 }
 
 export function startOutboxDispatcher(intervalMs = 2000) {
-    if (dispatcherTimer) return dispatcherTimer;
+    if (dispatcherTimer) return dispatcherTimer;//if the dispatcher timer is already set, return it
     dispatcherTimer = setInterval(() => {
-        dispatchPendingOutboxEvents().catch((error) => {
+        dispatchPendingOutboxEvents().catch((error) => {//every 2 seconds it will try to dispatch the pending outbox events
             console.error(`Outbox dispatch loop error: ${error.message}`);
         });
     }, intervalMs);

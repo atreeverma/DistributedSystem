@@ -23,7 +23,7 @@ export async function fetchPendingOutboxEvents(limit = 20, processingTimeoutMs =
                )
             ORDER BY created_at ASC
             LIMIT $1
-            FOR UPDATE SKIP LOCKED
+            FOR UPDATE SKIP LOCKED   --this will lock the rows for update so that no other transaction can update the same row until the current transaction is committed or rolled back
          )
          UPDATE outbox_events
          SET status = 'PROCESSING', locked_at = NOW()

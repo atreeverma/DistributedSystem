@@ -1,4 +1,5 @@
 import amqp from "amqplib";
+import { once } from "node:events";
 import { ApiError } from "../utils/ApiError.js";
 
 const QUEUE_NAME = "transaction_queue";
@@ -11,8 +12,21 @@ export async function connectQueue() {
         throw new ApiError(500, "RABBITMQ_URL is not configured");
     }
 
+    if (channel) {
+        return;
+    }
+
     connection = await amqp.connect(process.env.RABBITMQ_URL);
     channel = await connection.createConfirmChannel();
+
+    connection.on("close", () => {
+        connection = undefined;
+        channel = undefined;
+    });
+
+    channel.on("close", () => {
+        channel = undefined;
+    });
 
     await channel.assertQueue(QUEUE_NAME, {
         durable: true
@@ -26,7 +40,7 @@ export async function publishTransaction(data) {
         throw new ApiError(500, "RabbitMQ not connected");
     }
 
-    channel.sendToQueue(
+    const canWrite = channel.sendToQueue(
         QUEUE_NAME,
         Buffer.from(JSON.stringify(data)),
         {
@@ -34,6 +48,10 @@ export async function publishTransaction(data) {
             contentType: "application/json"
         }
     );
+
+    if (!canWrite) {
+        await once(channel, "drain");
+    }
 
     await channel.waitForConfirms();
 

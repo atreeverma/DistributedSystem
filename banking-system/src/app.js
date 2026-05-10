@@ -10,6 +10,7 @@ import { ensureTransactionIdempotencyConstraint } from "./repositories/transacti
 dotenv.config();
 
 const app = express();
+const QUEUE_RETRY_INTERVAL_MS = Number(process.env.QUEUE_RETRY_INTERVAL_MS) || 5000;
 
 // Middleware
 app.use((req, res, next) => {
@@ -35,6 +36,16 @@ app.use((err, req, res, next) => {
     res.status(statusCode).json(new ApiResponse(statusCode, message, null));
 });
 
+async function startQueueServices() {
+    try {
+        await connectQueue();
+        startOutboxDispatcher();
+    } catch (error) {
+        console.error(`RabbitMQ unavailable, retrying in ${QUEUE_RETRY_INTERVAL_MS}ms: ${error.message}`);
+        setTimeout(startQueueServices, QUEUE_RETRY_INTERVAL_MS);
+    }
+}
+
 async function startServer() {
     const PORT = process.env.PORT || 3000;
 
@@ -45,12 +56,12 @@ async function startServer() {
 
     await ensureOutboxTable();
     await ensureTransactionIdempotencyConstraint();
-    await connectQueue();
-    startOutboxDispatcher();
 
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
     });
+
+    startQueueServices();
 }
 
 startServer().catch((error) => {
