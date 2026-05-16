@@ -18,16 +18,67 @@ export async function createTransaction(client, data) {
     )
     return res.rows[0];
 }
-
-export async function updateTransactionStatus(id, status) {
+export async function getTransactionById(id){
     const res = await pool.query(
-        `UPDATE transactions
-         SET status = $1
-         WHERE id = $2
-         RETURNING *`,
-        [status, id]
+        `SELECT * FROM transaction WHERE id = $1`,[id]
     );
     return res.rows[0];
+}
+export async function getTransactionByIdForUpdate(client,id){
+    const res = await client.query(
+        `SELECT * FROM transaction WHERE id = $1 FOR UPDATE`,[id]
+    );
+    return res.rows[0];
+}
+export async function updateTransactionStatus(client, id, status, errorMessage = null) {
+    const res = await client.query(
+        `UPDATE transactions
+         SET status = $1,
+             error_message = $2,
+             updated_at = NOW()
+         WHERE id = $3
+         RETURNING *`,
+        [status, errorMessage, id]
+    );
+
+    return res.rows[0];
+}
+export async function incrementTransactionRetry(id, errorMessage) {
+    const res = await pool.query(
+        `UPDATE transactions
+         SET retry_count = retry_count + 1,
+             error_message = $1,
+             updated_at = NOW()
+         WHERE id = $2
+         RETURNING *`,
+        [errorMessage, id]
+    );
+
+    return res.rows[0];
+}
+export async function markTransactionFailed(id, errorMessage) {
+    const res = await pool.query(
+        `UPDATE transactions
+         SET status = 'FAILED',
+             error_message = $1,
+             updated_at = NOW()
+         WHERE id = $2
+         RETURNING *`,
+        [errorMessage, id]
+    );
+
+    return res.rows[0];
+}
+export async function listRecentTransactions(limit = 20) {
+    const res = await pool.query(
+        `SELECT *
+         FROM transactions
+         ORDER BY created_at DESC
+         LIMIT $1`,
+        [limit]
+    );
+
+    return res.rows;
 }
 
 export async function ensureTransactionIdempotencyConstraint() {

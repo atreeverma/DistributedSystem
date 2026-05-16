@@ -7,36 +7,44 @@ import { startOutboxDispatcher } from "./queue/outboxDispatcher.js";
 import { ensureOutboxTable } from "./repositories/outboxRepository.js";
 import { ensureTransactionIdempotencyConstraint } from "./repositories/transactionRepository.js";
 
-dotenv.config();
+dotenv.config();//it will load the environment variables from the .env file
 
 const app = express();
-const QUEUE_RETRY_INTERVAL_MS = Number(process.env.QUEUE_RETRY_INTERVAL_MS) || 5000;
+const QUEUE_RETRY_INTERVAL_MS = Number(process.env.QUEUE_RETRY_INTERVAL_MS) || 5000;//used to retry the queue connection if it fails
 
 // Middleware
-app.use((req, res, next) => {
+app.use((req, res, next) => {//it will log the request method and path
     console.log(`${req.method} ${req.path}`);
     next();
 });
 
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "10mb" }));//it will limit the size of the request body to 10mb
+//healthcheck
+app.get("/health", (req, res) => {//helps to check api is alive without touching database logic
+    res.status(200).json(
+        new ApiResponse(200, "OK", {
+            status: "healthy"
+        })
+    );
+});
 
 // Routes
-app.use("/api", transactionRoutes);
+app.use("/api", transactionRoutes); //it will use the transactionRoutes middleware for the /api route
 
 // 404 Handler
-app.use((req, res) => {
+app.use((req, res) => { //it will return a 404 error if the route is not found
     res.status(404).json(new ApiResponse(404, "Route not found", null));
 });
 
 // Global Error Handler
-app.use((err, req, res, next) => {
+app.use((err, req, res, next) => { //it will handle the errors
     const statusCode = err.statusCode || 500;
     const message = err.message || "Internal Server Error";
     console.error(`Error: ${message}`);
     res.status(statusCode).json(new ApiResponse(statusCode, message, null));
 });
 
-async function startQueueServices() {
+async function startQueueServices() { //it will start the queue services
     try {
         await connectQueue();
         startOutboxDispatcher();
@@ -46,12 +54,12 @@ async function startQueueServices() {
     }
 }
 
-async function startServer() {
+async function startServer() { //it will start the server
     const PORT = process.env.PORT || 3000;
 
     if (!PORT) {
         console.error("PORT not defined in .env");
-        process.exit(1);
+        process.exit(1);//it will exit the process with a status code of 1
     }
 
     await ensureOutboxTable();
