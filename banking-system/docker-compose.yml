@@ -1,6 +1,33 @@
 version: "3.9"
 
 services:
+  
+  app: 
+    build: .
+    container_name: banking-api
+    restart: always
+    depends_on:
+      - postgres
+      - rabbitmq
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://admin:admin@localhost:5432/banking_db
+      RABBITMQ_URL: amqp://guest:guest@localhost:5672
+      QUEUE_RETRY_INTERVAL_MS: 5000
+    ports:
+      - "3000:3000"
+  
+  worker:
+    build: .
+    container_name: banking-worker
+    restart: always
+    depends_on:
+      - postgres
+      - rabbitmq
+    environment:
+      DATABASE_URL: postgresql://admin:admin@localhost:5432/banking_db
+      RABBITMQ_URL: amqp://guest:guest@localhost:5672
+    command: npm run worker
   postgres:
     image: postgres:15
     container_name: banking-postgres
