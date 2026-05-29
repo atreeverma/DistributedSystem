@@ -20,13 +20,13 @@ export async function createTransaction(client, data) {
 }
 export async function getTransactionById(id){
     const res = await pool.query(
-        `SELECT * FROM transaction WHERE id = $1`,[id]
+        `SELECT * FROM transactions WHERE id = $1`,[id]
     );
     return res.rows[0];
 }
 export async function getTransactionByIdForUpdate(client,id){
     const res = await client.query(
-        `SELECT * FROM transaction WHERE id = $1 FOR UPDATE`,[id]
+        `SELECT * FROM transactions WHERE id = $1 FOR UPDATE`,[id]
     );
     return res.rows[0];
 }

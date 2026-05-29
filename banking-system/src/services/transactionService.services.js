@@ -3,10 +3,11 @@ import { pool } from "../config/db.js"
 import { ApiError } from "../utils/ApiError.js";
 import {
     findByIdempotencyKey,
-    createTransaction
+    createTransaction,getTransactionById
 } from "../repositories/transactionRepository.js";
 import { getAccountById } from "../repositories/accountRepository.js";
 import { createOutboxEvent } from "../repositories/outboxRepository.js";
+import { listRecentTransactions } from "../repositories/transactionRepository.js";
 export async function initiateTransaction({
     fromAccount,
     toAccount,
@@ -16,7 +17,11 @@ export async function initiateTransaction({
     if (fromAccount === toAccount) {
         throw new ApiError(400, "Sender and receiver accounts cannot be same")
     }
+    const transferAmount = Number(amount);
 
+    if (!Number.isFinite(transferAmount) || transferAmount <= 0) {
+        throw new ApiError(400, "Amount must be greater than zero");
+    }
     const existing = await findByIdempotencyKey(idempotencyKey)
     if(existing) return existing
 
@@ -24,12 +29,9 @@ export async function initiateTransaction({
     try {
         await client.query("BEGIN")
 
-        const senderRes = await client.query(
-            "SELECT * FROM accounts WHERE id = $1",[fromAccount]
-        )
-        const sender = senderRes.rows[0]
+        const sender = await getAccountById(client, fromAccount);
         if(!sender) throw new ApiError(404,"Sender not found")
-        if(sender.balance < amount) throw new ApiError(400,"Insufficient balance")
+        if(Number(sender.balance) < transferAmount) throw new ApiError(400,"Insufficient balance")
         
         const receiver = await getAccountById(client,toAccount)
         if(!receiver) throw new ApiError(404,"Receiver not found")
@@ -38,7 +40,7 @@ export async function initiateTransaction({
             id: uuidv4(),
             fromAccount,
             toAccount,
-            amount,
+            amount: transferAmount,
             idempotencyKey
         })
 
@@ -50,7 +52,7 @@ export async function initiateTransaction({
                 transactionId: transaction.id,
                 fromAccount,
                 toAccount,
-                amount
+                amount: transferAmount
             }
         });
 
@@ -68,4 +70,13 @@ export async function initiateTransaction({
     } finally{
         client.release()
     }
+}
+export async function getTransactionStatus(id){
+    const transaction = await getTransactionById(id)
+    if(!transaction) throw new ApiError(404,"Transaction Not found")
+    return transaction
+}
+export async function getRecentTransactions(limit = 20){
+    const safeLimit = Math.min(Number(limit) || 20,100)
+    return listRecentTransactions(safeLimit)
 }

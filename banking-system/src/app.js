@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import transactionRoutes from "./routes/transactionRoutes.routes.js";
+import walletRoutes from "./routes/walletRoutes.routes.js"
 import { ApiResponse } from "./utils/ApiResponse.js";
 import { connectQueue } from "./queue/producer.js";
 import { startOutboxDispatcher } from "./queue/outboxDispatcher.js";
@@ -30,7 +31,7 @@ app.get("/health", (req, res) => {//helps to check api is alive without touching
 
 // Routes
 app.use("/api", transactionRoutes); //it will use the transactionRoutes middleware for the /api route
-
+app.use("/api",walletRoutes);
 // 404 Handler
 app.use((req, res) => { //it will return a 404 error if the route is not found
     res.status(404).json(new ApiResponse(404, "Route not found", null));

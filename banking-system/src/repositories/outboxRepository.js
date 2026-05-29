@@ -64,16 +64,12 @@ export async function ensureOutboxTable() {
             event_type TEXT NOT NULL,
             aggregate_id UUID NOT NULL,
             payload JSONB NOT NULL,
-            status TEXT NOT NULL DEFAULT 'PENDING',
-            retry_count INT NOT NULL DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'PENDING'
+                CHECK (status IN ('PENDING', 'PROCESSING', 'SENT', 'FAILED')),
+            retry_count INT NOT NULL DEFAULT 0 CHECK (retry_count >= 0),
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             locked_at TIMESTAMPTZ,
             sent_at TIMESTAMPTZ
         )
-    `);
-
-    await pool.query(`
-        ALTER TABLE outbox_events
-        ADD COLUMN IF NOT EXISTS locked_at TIMESTAMPTZ
     `);
 }

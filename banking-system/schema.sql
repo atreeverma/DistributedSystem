@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS outbox_events (
 );
 CREATE TABLE IF NOT EXISTS dlq (
     id UUID PRIMARY KEY,
-    transactions_id UUID,
+    transaction_id UUID,
     original_message JSONB NOT NULL,
     error_reason TEXT NOT NULL,
     retry_count INT NOT NULL DEFAULT 0 CHECK (retry_count >= 0),
