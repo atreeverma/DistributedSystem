@@ -2,7 +2,7 @@ import amqp from "amqplib";
 import { once } from "node:events";
 import { ApiError } from "../utils/ApiError.js";
 
-const QUEUE_NAME = "transaction_queue";
+export const QUEUE_NAME = "transaction_queue";
 
 let connection;
 let channel;
@@ -23,11 +23,6 @@ export async function connectQueue() {
         connection = undefined;
         channel = undefined;
     });
-
-    channel.on("close", () => {
-        channel = undefined;
-    });
-
     await channel.assertQueue(QUEUE_NAME, {
         durable: true
     });

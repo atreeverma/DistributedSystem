@@ -60,7 +60,7 @@ export async function markOutboxEventFailed(id) {
 export async function ensureOutboxTable() {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS outbox_events (
-            id UUID PRIMARY KEY,
+            id UUID PRIMARY KEY, --unique identifier for the outbox event
             event_type TEXT NOT NULL,
             aggregate_id UUID NOT NULL,
             payload JSONB NOT NULL,

@@ -1,7 +1,7 @@
 import { initiateTransaction } from "../services/transactionService.services.js";
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { getTransactionStatus } from "../services/transactionService.services.js";
-import { getRecentTransactions} from "../services/transactionService.services"
+import { getRecentTransactions} from "../services/transactionService.services.js"
 import { listDlqEntries } from "../repositories/dlqRepository.js"
 export async function transferMoney(req, res) {
     const { fromAccount, toAccount, amount } = req.body;
