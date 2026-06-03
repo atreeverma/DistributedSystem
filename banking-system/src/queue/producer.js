@@ -3,7 +3,8 @@ import { once } from "node:events";
 import { ApiError } from "../utils/ApiError.js";
 
 export const QUEUE_NAME = "transaction_queue";
-
+export const RETRY_QUEUE = "transaction_retry_queue"
+export const DLQ_QUEUE = "transaction_dlq_queue"
 let connection;
 let channel;
 
@@ -26,6 +27,14 @@ export async function connectQueue() {
     await channel.assertQueue(QUEUE_NAME, {
         durable: true
     });
+    await channel.assertQueue(RETRY_QUEUE,{
+        durable: true,
+        deadLetterExchange: "",
+        deadLetterRoutingKey: QUEUE_NAME 
+    })
+    await channel.assertQueue(DLQ_QUEUE,{
+        durable: true
+    })
 
     console.log("RabbitMQ connected");
 }
