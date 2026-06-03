@@ -57,19 +57,3 @@ export async function markOutboxEventFailed(id) {
     return res.rows[0];
 }
 
-export async function ensureOutboxTable() {
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS outbox_events (
-            id UUID PRIMARY KEY, --unique identifier for the outbox event
-            event_type TEXT NOT NULL,
-            aggregate_id UUID NOT NULL,
-            payload JSONB NOT NULL,
-            status TEXT NOT NULL DEFAULT 'PENDING'
-                CHECK (status IN ('PENDING', 'PROCESSING', 'SENT', 'FAILED')),
-            retry_count INT NOT NULL DEFAULT 0 CHECK (retry_count >= 0),
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            locked_at TIMESTAMPTZ,
-            sent_at TIMESTAMPTZ
-        )
-    `);
-}

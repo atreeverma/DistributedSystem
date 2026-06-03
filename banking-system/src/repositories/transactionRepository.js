@@ -81,9 +81,3 @@ export async function listRecentTransactions(limit = 20) {
     return res.rows;
 }
 
-export async function ensureTransactionIdempotencyConstraint() {
-    await pool.query(
-        `CREATE UNIQUE INDEX IF NOT EXISTS transactions_idempotency_key_unique
-         ON transactions (idempotency_key)`
-    );
-}
