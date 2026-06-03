@@ -5,8 +5,7 @@ import walletRoutes from "./routes/walletRoutes.routes.js"
 import { ApiResponse } from "./utils/ApiResponse.js";
 import { connectQueue } from "./queue/producer.js";
 import { startOutboxDispatcher } from "./queue/outboxDispatcher.js";
-import { ensureOutboxTable } from "./repositories/outboxRepository.js";
-import { ensureTransactionIdempotencyConstraint } from "./repositories/transactionRepository.js";
+import { ensureDatabaseSchema } from "./config/ensureSchema.js";
 
 dotenv.config();//it will load the environment variables from the .env file
 
@@ -63,8 +62,7 @@ async function startServer() { //it will start the server
         process.exit(1);//it will exit the process with a status code of 1
     }
 
-    await ensureOutboxTable();
-    await ensureTransactionIdempotencyConstraint();
+    await ensureDatabaseSchema();
 
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);

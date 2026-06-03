@@ -5,6 +5,7 @@ import { QUEUE_NAME,RETRY_QUEUE,DLQ_QUEUE } from "./producer.js"
 import { ApiError } from "../utils/ApiError.js"
 import { incrementTransactionRetry,markTransactionFailed } from "../repositories/transactionRepository.js"
 import { createDlqEntry } from "../repositories/dlqRepository.js"
+import { ensureDatabaseSchema } from "../config/ensureSchema.js"
 const MAX_RETRIES = Number(process.env.MAX_RETRIES) || 3
 const RETRY_DELAY_MS = Number(process.env.RETRY_DELAY_MS) || 5000
 async function moveMessageToDlq({
@@ -19,36 +20,43 @@ async function moveMessageToDlq({
         rawMessage: msg.content.toString()
     };
 
-    await createDlqEntry({
-        transactionId,
-        originalMessage,
-        errorReason,
-        retryCount
-    });
-
-    channel.sendToQueue(
-        DLQ_QUEUE,
-        Buffer.from(JSON.stringify({
-            ...originalMessage,
+    try {
+        await createDlqEntry({
+            transactionId,
+            originalMessage,
             errorReason,
             retryCount
-        })),
-        {
-            persistent: true,
-            contentType: "application/json"
-        }
-    );
+        });
 
-    await channel.waitForConfirms();
+        channel.sendToQueue(
+            DLQ_QUEUE,
+            Buffer.from(JSON.stringify({
+                ...originalMessage,
+                errorReason,
+                retryCount
+            })),
+            {
+                persistent: true,
+                contentType: "application/json"
+            }
+        );
 
-    channel.ack(msg);
+        await channel.waitForConfirms();
+        channel.ack(msg);
 
-    console.log(`Message moved to DLQ: ${errorReason}`);
+        console.log(`Message moved to DLQ: ${errorReason}`);
+    } catch (error) {
+        console.error(`Failed to move message to DLQ: ${error.message}`);
+        channel.nack(msg, false, true);
+    }
 }
 export async function startWorker(){
     if(!process.env.RABBITMQ_URL){
         throw new ApiError(500,"RabbitMQ is not configured")
     }
+
+    await ensureDatabaseSchema();
+
     const connection = await amqp.connect(process.env.RABBITMQ_URL)
     const channel = await connection.createConfirmChannel()
     await channel.assertQueue(QUEUE_NAME, {
@@ -115,52 +123,65 @@ export async function startWorker(){
                 const retryPayload = {
                     ...payload,
                     retryCount: nextRetryCount
+                };
+
+                try {
+                    await incrementTransactionRetry(transactionId, error.message);
+                    channel.sendToQueue(
+                        RETRY_QUEUE,
+                        Buffer.from(JSON.stringify(retryPayload)),
+                        {
+                            persistent: true,
+                            contentType: "application/json",
+                            expiration: String(RETRY_DELAY_MS)
+                        }
+                    );
+                    await channel.waitForConfirms();
+                    channel.ack(msg);
+                    console.log(
+                        `Transaction ${transactionId} moved to retry queue. Retry ${nextRetryCount}/${MAX_RETRIES}`
+                    );
+                } catch (publishError) {
+                    console.error(
+                        `Failed to publish retry for ${transactionId}: ${publishError.message}`
+                    );
+                    channel.nack(msg, false, true);
                 }
-                await incrementTransactionRetry(transactionId,error.message)
-                channel.sendToQueue(
-                    RETRY_QUEUE,
-                    Buffer.from(JSON.stringify(retryPayload)),
-                    {
-                        persistent: true,
-                        contentType: "application/json",
-                        expiration: String(RETRY_DELAY_MS)
-                    }
-                )
-                await channel.waitForConfirms()
-                channel.ack(msg)
-                console.log(
-                    `Transaction ${transactionId} moved to retry queue. Retry ${nextRetryCount}/${MAX_RETRIES}`
-                );
 
                 return;
             }
-            if(transactionId){
-                await markTransactionFailed(transactionId,error.message)
-            }
-            await createDlqEntry({
-                transactionId: transactionId || null,
-                originalMessage: payload || {
-                    rawMessage: msg.content.toString()
-                },
-                errorReason: error.message,
-                retryCount
-            })
-            channel.sendToQueue(
-                DLQ_QUEUE,
-                Buffer.from(JSON.stringify({
-                    ...(payload || {}),
+
+            try {
+                if (transactionId) {
+                    await markTransactionFailed(transactionId, error.message);
+                }
+                await createDlqEntry({
+                    transactionId: transactionId || null,
+                    originalMessage: payload || {
+                        rawMessage: msg.content.toString()
+                    },
                     errorReason: error.message,
                     retryCount
-                })),
-                {
-                    persistent: true,
-                    contentType: "application/json"
-                }
-            )
-            await channel.waitForConfirms()
-            channel.ack(msg)
-            console.log(`Message moved to DLQ after ${retryCount} retries`);
-            
+                });
+                channel.sendToQueue(
+                    DLQ_QUEUE,
+                    Buffer.from(JSON.stringify({
+                        ...(payload || {}),
+                        errorReason: error.message,
+                        retryCount
+                    })),
+                    {
+                        persistent: true,
+                        contentType: "application/json"
+                    }
+                );
+                await channel.waitForConfirms();
+                channel.ack(msg);
+                console.log(`Message moved to DLQ after ${retryCount} retries`);
+            } catch (publishError) {
+                console.error(`Failed to publish to DLQ: ${publishError.message}`);
+                channel.nack(msg, false, true);
+            }
         }
     })
 }
