@@ -7,6 +7,7 @@ import {
 } from "../repositories/transactionRepository.js";
 import { getAccountById } from "../repositories/accountRepository.js";
 import { createOutboxEvent } from "../repositories/outboxRepository.js";
+import { createAuditLog } from "../repositories/auditRepository.js";
 import { listRecentTransactions } from "../repositories/transactionRepository.js";
 export async function initiateTransaction({
     fromAccount,
@@ -41,7 +42,18 @@ export async function initiateTransaction({
             amount: transferAmount,
             idempotencyKey
         })
-
+        await createAuditLog(client,{
+            transactionId: transaction.id,
+            actor: "api",
+            action: "TRANSFER_REQUESTED",
+            status: "PENDING",
+            metadata: {
+                fromAccount,
+                toAccount,
+                amount: transferAmount,
+                idempotencyKey
+            }
+        })
         await createOutboxEvent(client, {
             eventType: "TRANSACTION_CREATED",
             aggregateId: transaction.id,

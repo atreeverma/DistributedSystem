@@ -6,6 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { getTransactionController } from "../controllers/transactionController.controller.js";
 import { listNotificationsController } from "../controllers/notificationController.controller.js";
+import { listAuditLogsController } from "../controllers/auditController.controller.js";
 
 const router = express.Router();
 
@@ -22,4 +23,5 @@ router.get("/transfers/:transactionId",asyncHandler(getTransactionController))
 router.get("/debug/transactions",asyncHandler(listRecentTransactionsController))
 router.get("/monitoring/dlq",asyncHandler(listDlqController))
 router.get("/monitoring/notifications", asyncHandler(listNotificationsController));
+router.get("/monitoring/audit", asyncHandler(listAuditLogsController));
 export default router;

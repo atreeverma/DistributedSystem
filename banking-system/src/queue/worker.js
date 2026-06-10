@@ -8,6 +8,7 @@ import { createDlqEntry } from "../repositories/dlqRepository.js"
 import { ensureDatabaseSchema } from "../config/ensureSchema.js"
 import { createOutboxEvent } from "../repositories/outboxRepository.js";
 import { pool } from "../config/db.js";
+import { createAuditLog } from "../repositories/auditRepository.js";
 
 const MAX_RETRIES = Number(process.env.MAX_RETRIES) || 3
 const RETRY_DELAY_MS = Number(process.env.RETRY_DELAY_MS) || 5000
@@ -147,6 +148,17 @@ export async function startWorker(){
 
                 try {
                     await incrementTransactionRetry(transactionId, error.message);
+                    await createAuditLog(null,{
+                        transactionId,
+                        actor: "worker",
+                        action: "TRANSFER_RETRY_SCHEDULED",
+                        status: "RETRY",
+                        metadata: {
+                            retryCount: nextRetryCount,
+                            maxRetries: MAX_RETRIES,
+                            errorMessage: error.message
+                        }
+                    })
                     channel.sendToQueue(
                         RETRY_QUEUE,
                         Buffer.from(JSON.stringify(retryPayload)),
@@ -175,6 +187,16 @@ export async function startWorker(){
                 let failedTransaction = null
                 if (transactionId) {
                     failedTransaction = await markTransactionFailed(transactionId, error.message);
+                    await createAuditLog(null, {
+                        transactionId,
+                        actor: "worker",
+                        action: "TRANSFER_FAILED",
+                        status: "FAILED",
+                        metadata: {
+                            retryCount: nextRetryCount,
+                            errorMessage: error.message
+                        }
+                    });
                 }
                 if(failedTransaction){
                     const client = await pool.connect()
@@ -208,6 +230,19 @@ export async function startWorker(){
                     },
                     errorReason: error.message,
                     retryCount: nextRetryCount
+                });
+                await createAuditLog(null, {
+                    transactionId: transactionId || null,
+                    actor: "worker",
+                    action: "MOVED_TO_DLQ",
+                    status: "FAILED",
+                    metadata: {
+                        retryCount: nextRetryCount,
+                        errorMessage: error.message,
+                        originalMessage: payload || {
+                            rawMessage: msg.content.toString()
+                        }
+                    }
                 });
                 channel.sendToQueue(
                     DLQ_QUEUE,

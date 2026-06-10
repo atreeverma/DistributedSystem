@@ -26,6 +26,7 @@ async function dispatchPendingOutboxEvents() {
                 }else {
                     await markOutboxEventFailed(event.id);
                     console.warn(`Unknown outbox event type: ${event.event_type}`);
+                    continue;
                 }
                 await markOutboxEventSent(event.id);
             } catch (error) {

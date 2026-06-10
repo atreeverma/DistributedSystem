@@ -6,6 +6,7 @@ import { getTransactionByIdForUpdate, updateTransactionStatus } from "../reposit
 import { getAccountsForUpdate } from "../repositories/accountRepository.js"
 import { updateAccountBalance } from "../repositories/accountRepository.js";
 import { createOutboxEvent } from "../repositories/outboxRepository.js";
+import { createAuditLog } from "../repositories/auditRepository.js";
 
 export async function createWallet({userId,initialBalance = 0}) {
     if(!userId) throw new ApiError(400,"User Id is required")
@@ -63,6 +64,17 @@ export async function processWalletTransfer(transactionId) {
             transaction.id,
             "SUCCESS"
         )
+        await createAuditLog(client,{
+            transactionId: transaction.id,
+            actor: "worker",
+            action: "TRANSFER_SUCCEEDED",
+            status: "SUCCESS",
+            metadata: {
+                fromAccount: transaction.from_account,
+                toAccount: transaction.to_account,
+                amount: Number(transaction.amount)
+            }
+        })
         await createOutboxEvent(client, {
             eventType: "TRANSACTION_SUCCEEDED",
             aggregateId: transaction.id,

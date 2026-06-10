@@ -49,6 +49,20 @@ CREATE TABLE IF NOT EXISTS notifications(
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     sent_at TIMESTAMPTZ
 );
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id UUID PRIMARY KEY,
+    transaction_id UUID REFERENCES transactions(id),
+    actor TEXT NOT NULL DEFAULT 'system',
+    action TEXT NOT NULL,
+    status TEXT NOT NULL,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS audit_logs_transaction_created_at_idx 
+ON audit_logs(transaction_id,created_at DESC);
+
+CREATE INDEX IF NOT EXISTS audit_logs_action_created_at_idx
+ON audit_logs(action, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS notifications_transaction_created_at_idx
 ON notifications(transaction_id, created_at DESC);

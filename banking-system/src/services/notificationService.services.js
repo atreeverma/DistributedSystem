@@ -3,6 +3,7 @@ import {
     markNotificationFailed,
     markNotificationSent
 } from "../repositories/notificationRepository.js"
+import { createAuditLog } from "../repositories/auditRepository.js";
 
 function buildNotificationTargets(event) {
     const {eventType,transactionId,fromAccount,toAccount,amount,errorMessage} = event;
@@ -97,9 +98,32 @@ export async function processNotificationEvent(event){
             await sendNotification(notification)
 
             const sentNotification = await markNotificationSent(notification.id)
+            await createAuditLog(null, {
+                transactionId: notification.transaction_id,
+                actor: "notification-worker",
+                action: "NOTIFICATION_SENT",
+                status: "SENT",
+                metadata: {
+                    notificationId: notification.id,
+                    recipientAccount: notification.recipient_account,
+                    notificationType: notification.notification_type
+                }
+            });
             processedNotification.push(sentNotification)
         } catch(error) {
             const failedNotification = await markNotificationFailed(notification.id,error.message)
+            await createAuditLog(null, {
+                transactionId: notification.transaction_id,
+                actor: "notification-worker",
+                action: "NOTIFICATION_FAILED",
+                status: "FAILED",
+                metadata: {
+                    notificationId: notification.id,
+                    recipientAccount: notification.recipient_account,
+                    notificationType: notification.notification_type,
+                    errorMessage: error.message
+                }
+            });
             processedNotification.push(failedNotification)
         }
     }
