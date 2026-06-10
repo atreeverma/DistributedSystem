@@ -29,7 +29,20 @@ services:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       MAX_RETRIES: 3
       RETRY_DELAY_MS: 5000
+      WORKER_RECONNECT_MS: 5000
     command: npm run worker
+  notification-worker:
+    build: .
+    container_name: banking-notification-worker
+    restart: always
+    depends_on:
+      - postgres
+      - rabbitmq
+    environment:
+      DATABASE_URL: postgresql://admin:admin@postgres:5432/banking_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      WORKER_RECONNECT_MS: 5000
+    command: npm run notification-worker
   postgres:
     image: postgres:15
     container_name: banking-postgres

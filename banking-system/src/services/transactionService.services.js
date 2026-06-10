@@ -31,8 +31,6 @@ export async function initiateTransaction({
 
         const sender = await getAccountById(client, fromAccount);
         if(!sender) throw new ApiError(404,"Sender not found")
-        if(Number(sender.balance) < transferAmount) throw new ApiError(400,"Insufficient balance")
-        
         const receiver = await getAccountById(client,toAccount)
         if(!receiver) throw new ApiError(404,"Receiver not found")
         

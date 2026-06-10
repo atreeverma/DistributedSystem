@@ -5,6 +5,8 @@ import { ApiError } from "../utils/ApiError.js"
 import { getTransactionByIdForUpdate, updateTransactionStatus } from "../repositories/transactionRepository.js"
 import { getAccountsForUpdate } from "../repositories/accountRepository.js"
 import { updateAccountBalance } from "../repositories/accountRepository.js";
+import { createOutboxEvent } from "../repositories/outboxRepository.js";
+
 export async function createWallet({userId,initialBalance = 0}) {
     if(!userId) throw new ApiError(400,"User Id is required")
     
@@ -61,6 +63,17 @@ export async function processWalletTransfer(transactionId) {
             transaction.id,
             "SUCCESS"
         )
+        await createOutboxEvent(client, {
+            eventType: "TRANSACTION_SUCCEEDED",
+            aggregateId: transaction.id,
+            payload: {
+                eventType: "TRANSACTION_SUCCEEDED",
+                transactionId: transaction.id,
+                fromAccount: transaction.from_account,
+                toAccount: transaction.to_account,
+                amount: Number(transaction.amount)
+            }
+        });
         await client.query("COMMIT")
         return updatedTransaction
     } catch (error) {

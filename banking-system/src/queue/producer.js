@@ -5,6 +5,7 @@ import { ApiError } from "../utils/ApiError.js";
 export const QUEUE_NAME = "transaction_queue";
 export const RETRY_QUEUE = "transaction_retry_queue"
 export const DLQ_QUEUE = "transaction_dlq_queue"
+export const NOTIFICATION_QUEUE = "notification_queue"
 let connection;
 let channel;
 
@@ -35,7 +36,9 @@ export async function connectQueue() {
     await channel.assertQueue(DLQ_QUEUE,{
         durable: true
     })
-
+    await channel.assertQueue(NOTIFICATION_QUEUE,{
+        durable: true
+    })
     console.log("RabbitMQ connected");
 }
 
@@ -60,4 +63,24 @@ export async function publishTransaction(data) {
     await channel.waitForConfirms();
 
     console.log("Transaction pushed to queue");
+}
+export async function publishNotification(data) {
+    if(!channel) {
+        throw new ApiError(500,"RabbitMq not connected")
+    }
+
+    const canWrite = channel.sendToQueue(
+        NOTIFICATION_QUEUE,
+        Buffer.from(JSON.stringify(data)),
+        {
+            persistent: true,
+            contentType: "application/json"
+        }
+    )
+    if(!canWrite) {
+        await once(channel,"drain");
+    }
+    await channel.waitForConfirms()
+
+    console.log("Notification pushed to queue");
 }

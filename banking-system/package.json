@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test test/*.test.js",
     "start": "node src/app.js",
-    "worker": "node src/queue/worker.js"
+    "worker": "node src/queue/worker.js",
+    "notification-worker": "node src/queue/notificationWorker.js"
   },
   "keywords": [],
   "author": "Atree Verma",

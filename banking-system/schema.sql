@@ -37,6 +37,25 @@ CREATE TABLE IF NOT EXISTS dlq (
     retry_count INT NOT NULL DEFAULT 0 CHECK (retry_count >= 0),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE TABLE IF NOT EXISTS notifications(
+    id UUID PRIMARY KEY,
+    transaction_id UUID REFERENCES transactions(id),
+    recipient_account TEXT NOT NULL REFERENCES accounts(id),
+    notification_type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING','SENT','FAILED')),
+    payload JSONB NOT NULL,
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    sent_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS notifications_transaction_created_at_idx
+ON notifications(transaction_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS notifications_status_created_at_idx
+ON notifications(status, created_at DESC);
+
 CREATE INDEX IF NOT EXISTS transactions_status_idx
 ON transactions(status);
 

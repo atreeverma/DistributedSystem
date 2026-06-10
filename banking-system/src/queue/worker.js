@@ -6,8 +6,14 @@ import { ApiError } from "../utils/ApiError.js"
 import { incrementTransactionRetry,markTransactionFailed } from "../repositories/transactionRepository.js"
 import { createDlqEntry } from "../repositories/dlqRepository.js"
 import { ensureDatabaseSchema } from "../config/ensureSchema.js"
+import { createOutboxEvent } from "../repositories/outboxRepository.js";
+import { pool } from "../config/db.js";
+
 const MAX_RETRIES = Number(process.env.MAX_RETRIES) || 3
 const RETRY_DELAY_MS = Number(process.env.RETRY_DELAY_MS) || 5000
+function isPermanentError(error) {
+    return [400, 404, 409].includes(error.statusCode);
+}
 async function moveMessageToDlq({
     channel,
     msg,
@@ -58,6 +64,20 @@ export async function startWorker(){
     await ensureDatabaseSchema();
 
     const connection = await amqp.connect(process.env.RABBITMQ_URL)
+    let connectionClosed = false;
+
+    const connectionClosedPromise = new Promise((_, reject) => {
+        connection.on("close", () => {
+            connectionClosed = true;
+            reject(new Error("RabbitMQ connection closed"));
+        });
+
+        connection.on("error", (error) => {
+            if (!connectionClosed) {
+                reject(error);
+            }
+        });
+    });
     const channel = await connection.createConfirmChannel()
     await channel.assertQueue(QUEUE_NAME, {
         durable: true
@@ -119,7 +139,7 @@ export async function startWorker(){
             const nextRetryCount = retryCount + 1;
             const transactionId = payload?.transactionId
 
-            if(transactionId && nextRetryCount <= MAX_RETRIES){
+            if(transactionId && !isPermanentError(error) && nextRetryCount <= MAX_RETRIES){
                 const retryPayload = {
                     ...payload,
                     retryCount: nextRetryCount
@@ -152,8 +172,34 @@ export async function startWorker(){
             }
 
             try {
+                let failedTransaction = null
                 if (transactionId) {
-                    await markTransactionFailed(transactionId, error.message);
+                    failedTransaction = await markTransactionFailed(transactionId, error.message);
+                }
+                if(failedTransaction){
+                    const client = await pool.connect()
+                    try {
+                        await client.query("BEGIN")
+
+                        await createOutboxEvent(client,{
+                            eventType: "TRANSACTION_FAILED",
+                            aggregateId: failedTransaction.id,
+                            payload: {
+                                eventType: "TRANSACTION_FAILED",
+                                transactionId: failedTransaction.id,
+                                fromAccount: failedTransaction.from_account,
+                                toAccount: failedTransaction.to_account,
+                                amount: Number(failedTransaction.amount),
+                                errorMessage: error.message
+                            }
+                        })
+                        await client.query("COMMIT")
+                    } catch (error) {
+                        await client.query("ROLLBACK")
+                        throw error
+                    }finally {
+                        client.release();
+                    }
                 }
                 await createDlqEntry({
                     transactionId: transactionId || null,
@@ -161,14 +207,14 @@ export async function startWorker(){
                         rawMessage: msg.content.toString()
                     },
                     errorReason: error.message,
-                    retryCount
+                    retryCount: nextRetryCount
                 });
                 channel.sendToQueue(
                     DLQ_QUEUE,
                     Buffer.from(JSON.stringify({
                         ...(payload || {}),
                         errorReason: error.message,
-                        retryCount
+                        retryCount: nextRetryCount
                     })),
                     {
                         persistent: true,
@@ -177,15 +223,27 @@ export async function startWorker(){
                 );
                 await channel.waitForConfirms();
                 channel.ack(msg);
-                console.log(`Message moved to DLQ after ${retryCount} retries`);
+                console.log(`Message moved to DLQ after ${nextRetryCount} retries`);
             } catch (publishError) {
                 console.error(`Failed to publish to DLQ: ${publishError.message}`);
                 channel.nack(msg, false, true);
             }
         }
     })
+    return connectionClosedPromise;
 }
-startWorker().catch((error) => {
-    console.error(`Failed to start worker: ${error.message}`);
-    process.exit(1);
-});
+const WORKER_RECONNECT_MS = Number(process.env.WORKER_RECONNECT_MS) || 5000;
+
+async function startWorkerWithReconnect() {
+    while (true) {
+        try {
+            await startWorker();
+            return;
+        } catch (error) {
+            console.error(`Worker unavailable, retrying in ${WORKER_RECONNECT_MS}ms: ${error.message}`);
+            await new Promise((resolve) => setTimeout(resolve, WORKER_RECONNECT_MS));
+        }
+    }
+}
+
+startWorkerWithReconnect();

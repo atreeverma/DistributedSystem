@@ -5,6 +5,8 @@ import { validateTransfer } from "../middleware/transfervalidate.middleware.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { getTransactionController } from "../controllers/transactionController.controller.js";
+import { listNotificationsController } from "../controllers/notificationController.controller.js";
+
 const router = express.Router();
 
 router.post("/transfers", validateTransfer, (req, res, next) => {
@@ -19,4 +21,5 @@ router.post("/transfers", validateTransfer, (req, res, next) => {
 router.get("/transfers/:transactionId",asyncHandler(getTransactionController))
 router.get("/debug/transactions",asyncHandler(listRecentTransactionsController))
 router.get("/monitoring/dlq",asyncHandler(listDlqController))
+router.get("/monitoring/notifications", asyncHandler(listNotificationsController));
 export default router;

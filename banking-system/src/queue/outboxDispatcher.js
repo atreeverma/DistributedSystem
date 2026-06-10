@@ -1,4 +1,4 @@
-import { publishTransaction } from "./producer.js";
+import { publishTransaction, publishNotification } from "./producer.js";
 import {
     fetchPendingOutboxEvents,
     markOutboxEventFailed,
@@ -16,7 +16,17 @@ async function dispatchPendingOutboxEvents() {
         const events = await fetchPendingOutboxEvents(20);
         for (const event of events) {
             try {
-                await publishTransaction(event.payload);
+                if (event.event_type === "TRANSACTION_CREATED") {
+                    await publishTransaction(event.payload);
+                } else if (
+                    event.event_type === "TRANSACTION_SUCCEEDED" ||
+                    event.event_type === "TRANSACTION_FAILED"
+                ) {
+                    await publishNotification(event.payload);
+                }else {
+                    await markOutboxEventFailed(event.id);
+                    console.warn(`Unknown outbox event type: ${event.event_type}`);
+                }
                 await markOutboxEventSent(event.id);
             } catch (error) {
                 await markOutboxEventFailed(event.id);
