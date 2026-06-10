@@ -46,10 +46,41 @@ function buildNotificationTargets(event) {
     return [];
 }
 async function sendNotification(notification) {
-    console.log(
-        `Notification sent to ${notification.recipient_account}: ${notification.notification_type}`
-    );
+    const webhookUrl = process.env.NOTIFICATION_WEBHOOK_URL
 
+    const notificationPayload = {
+        notificationId: notification.id,
+        transactionId: notification.transaction_id,
+        recipientAccount: notification.recipient_account,
+        notificationType: notification.notification_type,
+        payload: notification.payload,
+        createdAt: notification.created_at
+    };
+    if(!webhookUrl){
+        console.log(
+            `Webhook mock notification for ${notification.recipient_account}: ${notification.notification_type}`,
+            notificationPayload
+        );
+
+        return true;
+    }
+    const response = await fetch(webhookUrl,{
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(notificationPayload)
+    })
+    if(!response.ok){
+        const errorBody = await response.text()
+
+        throw new Error(
+           `Webhook notification failed with status ${response.status}: ${errorBody}`
+        )
+    }
+    console.log(
+        `Webhook notification delivered for ${notification.recipient_account}: ${notification.notification_type}`
+    );
     return true;
 }
 export async function processNotificationEvent(event){
