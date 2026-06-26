@@ -78,6 +78,7 @@ bhm balance increases by 500
 
 ```bash
 curl http://localhost:3000/api/monitoring/notifications
+curl http://localhost:3000/api/monitoring/notifications/dlq
 ```
 
 Expected notification types:
@@ -139,6 +140,7 @@ curl http://localhost:3000/api/debug/transactions
 curl http://localhost:3000/api/monitoring/dlq
 curl http://localhost:3000/api/monitoring/audit
 curl http://localhost:3000/api/monitoring/notifications
+curl http://localhost:3000/api/monitoring/notifications/dlq
 ```
 
 Expected:

@@ -42,7 +42,9 @@ services:
       DATABASE_URL: postgresql://admin:admin@postgres:5432/banking_db
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       WORKER_RECONNECT_MS: 5000
-      NOTIFICATION_WEBHOOK_URL: 
+      NOTIFICATION_MAX_RETRIES: 3
+      NOTIFICATION_RETRY_DELAY_MS: 5000
+      NOTIFICATION_WEBHOOK_URL: http://host.docker.internal:4000/notifications
     command: npm run notification-worker
   postgres:
     image: postgres:15

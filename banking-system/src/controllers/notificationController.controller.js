@@ -1,4 +1,5 @@
 import {
+    listNotificationDlqEntries,
     listNotifications,
     listNotificationsByTransaction
 } from "../repositories/notificationRepository.js";
@@ -15,6 +16,17 @@ export async function listNotificationsController(req, res) {
         new ApiResponse(200, "Notifications fetched", {
             count: notifications.length,
             notifications
+        })
+    );
+}
+
+export async function listNotificationDlqController(req, res) {
+    const messages = await listNotificationDlqEntries(req.query.limit);
+
+    return res.status(200).json(
+        new ApiResponse(200, "Notification dead letter queue fetched", {
+            count: messages.length,
+            messages
         })
     );
 }

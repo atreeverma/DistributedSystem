@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import { pool } from "./db.js";
 
 const SCHEMA_PATH = path.resolve(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "../../schema.sql"
+    path.dirname(fileURLToPath(import.meta.url)),//gets the directory name of the current file
+    "../../schema.sql"//path to the schema.sql file
 );
 
 const SCHEMA_RETRY_ATTEMPTS = Number(process.env.SCHEMA_RETRY_ATTEMPTS) || 10;
@@ -20,7 +20,7 @@ function delay(ms) {
 }
 
 export async function ensureDatabaseSchema() {
-    const sql = await fs.readFile(SCHEMA_PATH, "utf8");
+    const sql = await fs.readFile(SCHEMA_PATH, "utf8");//reads the schema.sql file
 
     for (let attempt = 1; attempt <= SCHEMA_RETRY_ATTEMPTS; attempt++) {
         try {

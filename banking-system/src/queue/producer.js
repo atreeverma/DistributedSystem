@@ -6,6 +6,8 @@ export const QUEUE_NAME = "transaction_queue";
 export const RETRY_QUEUE = "transaction_retry_queue"
 export const DLQ_QUEUE = "transaction_dlq_queue"
 export const NOTIFICATION_QUEUE = "notification_queue"
+export const NOTIFICATION_RETRY_QUEUE = "notification_retry_queue"
+export const NOTIFICATION_DLQ_QUEUE = "notification_dlq_queue"
 let connection;
 let channel;
 
@@ -37,6 +39,14 @@ export async function connectQueue() {
         durable: true
     })
     await channel.assertQueue(NOTIFICATION_QUEUE,{
+        durable: true
+    })
+    await channel.assertQueue(NOTIFICATION_RETRY_QUEUE, {
+        durable: true,
+        deadLetterExchange: "",
+        deadLetterRoutingKey: NOTIFICATION_QUEUE
+    })
+    await channel.assertQueue(NOTIFICATION_DLQ_QUEUE, {
         durable: true
     })
     console.log("RabbitMQ connected");

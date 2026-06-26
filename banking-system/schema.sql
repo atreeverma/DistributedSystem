@@ -49,6 +49,14 @@ CREATE TABLE IF NOT EXISTS notifications(
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     sent_at TIMESTAMPTZ
 );
+CREATE TABLE IF NOT EXISTS notification_dlq (
+    id UUID PRIMARY KEY,
+    transaction_id UUID REFERENCES transactions(id),
+    original_message JSONB NOT NULL,
+    error_reason TEXT NOT NULL,
+    retry_count INT NOT NULL DEFAULT 0 CHECK (retry_count >= 0),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 CREATE TABLE IF NOT EXISTS audit_logs (
     id UUID PRIMARY KEY,
     transaction_id UUID REFERENCES transactions(id),
@@ -70,6 +78,12 @@ ON notifications(transaction_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS notifications_status_created_at_idx
 ON notifications(status, created_at DESC);
 
+CREATE INDEX IF NOT EXISTS notification_dlq_created_at_idx
+ON notification_dlq(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS notification_dlq_transaction_created_at_idx
+ON notification_dlq(transaction_id, created_at DESC);
+
 CREATE INDEX IF NOT EXISTS transactions_status_idx
 ON transactions(status);
 
@@ -81,3 +95,5 @@ ON outbox_events(status, created_at);
 
 CREATE INDEX IF NOT EXISTS dlq_created_at_idx
 ON dlq(created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS notifications_delivery_unique_idx
+ON notifications(transaction_id, recipient_account, notification_type);

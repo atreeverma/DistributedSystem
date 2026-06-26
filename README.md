@@ -177,6 +177,8 @@ RABBITMQ_URL=amqp://guest:guest@localhost:5672
 MAX_RETRIES=3
 RETRY_DELAY_MS=5000
 WORKER_RECONNECT_MS=5000
+NOTIFICATION_MAX_RETRIES=3
+NOTIFICATION_RETRY_DELAY_MS=5000
 NOTIFICATION_WEBHOOK_URL=
 ```
 
@@ -257,6 +259,7 @@ GET /api/monitoring/dlq
 ```http
 GET /api/monitoring/notifications
 GET /api/monitoring/notifications?transactionId={transactionId}
+GET /api/monitoring/notifications/dlq
 ```
 
 ### Audit Logs

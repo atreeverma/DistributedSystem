@@ -42,7 +42,7 @@ app.use((err, req, res, next) => { //it will handle the errors
     const message = err.message || "Internal Server Error";
     console.error(`Error: ${message}`);
     res.status(statusCode).json(new ApiResponse(statusCode, message, null));
-});
+});//Express only invokes 4-argument (err, req, res, next) handlers when an error is passed to next()
 
 async function startQueueServices() { //it will start the queue services
     try {

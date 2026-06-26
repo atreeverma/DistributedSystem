@@ -15,7 +15,7 @@ export async function transferMoney(req, res) {
             new ApiResponse(400, "Amount must be greater than zero", null)
         );
     }
-    const idempotencyKey = req.headers["idempotency-key"];
+    const idempotencyKey = req.headers["idempotency-key"];//sending the same transfer request more than once has the same effect as sending it once.
     
     if (!idempotencyKey) {
         return res.status(400).json( new ApiResponse(400, "Idempotency key required", null));

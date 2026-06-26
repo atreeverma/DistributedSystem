@@ -87,6 +87,8 @@ async function sendNotification(notification) {
 export async function processNotificationEvent(event){
     const targets = buildNotificationTargets(event)
     const processedNotification = [];
+    const deliveryErrors = [];
+
     for(const target of targets){
         const notification = await createNotification({
             transactionId: event.transactionId,
@@ -125,7 +127,17 @@ export async function processNotificationEvent(event){
                 }
             });
             processedNotification.push(failedNotification)
+            deliveryErrors.push(error);
         }
     }
+
+    if (deliveryErrors.length > 0) {
+        throw new Error(
+            `Notification delivery failed for ${deliveryErrors.length} recipient(s): ${deliveryErrors
+                .map((error) => error.message)
+                .join("; ")}`
+        );
+    }
+
     return processedNotification
 }
