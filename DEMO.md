@@ -1,7 +1,7 @@
 # Demo Script
 
 Use this script to demo the distributed banking system end to end. The goal is to show correctness, reliability, and observability rather than UI.
-
+docker exec -it banking-postgres psql -U admin -d banking_db
 ## 1. Start The System
 
 ```bash
@@ -91,7 +91,7 @@ TRANSFER_CREDITED
 Also check worker logs:
 
 ```bash
-docker compose logs -f notification-worker
+
 ```
 
 ## 7. Check Audit Logs
@@ -99,6 +99,9 @@ docker compose logs -f notification-worker
 ```bash
 curl http://localhost:3000/api/monitoring/audit
 ```
+docker exec -it banking-postgres psql -U admin -d banking_db -c "SELECT id, transaction_id, actor, action, status, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 20;
+
+docker logs banking-audit-worker
 
 Useful filters:
 
@@ -176,3 +179,5 @@ Use this to show queues, message movement, and operational visibility.
 - RabbitMQ ACK/NACK handles crash recovery.
 - Retry and DLQ provide failure handling and visibility.
 - Notifications and audit logs are side effects, decoupled from the core money movement.
+
+

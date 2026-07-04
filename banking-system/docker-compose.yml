@@ -38,14 +38,23 @@ services:
     depends_on:
       - postgres
       - rabbitmq
+      - webhook-receiver
     environment:
       DATABASE_URL: postgresql://admin:admin@postgres:5432/banking_db
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       WORKER_RECONNECT_MS: 5000
       NOTIFICATION_MAX_RETRIES: 3
       NOTIFICATION_RETRY_DELAY_MS: 5000
-      NOTIFICATION_WEBHOOK_URL: http://host.docker.internal:4000/notifications
+      NOTIFICATION_WEBHOOK_URL: http://webhook-receiver:4000/notifications
     command: npm run notification-worker
+  webhook-receiver:
+    build: ./webhook-receiver
+    container_name: banking-webhook-receiver
+    restart: always
+    environment:
+      PORT: 4000
+    ports:
+      - "4000:4000"
   postgres:
     image: postgres:15
     container_name: banking-postgres

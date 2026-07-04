@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { pool } from "./db.js";
-
+//A container is a lightweight, isolated environment that runs one process/service with its own dependencies, ports, and config — without installing everything globally on your OS.
 const SCHEMA_PATH = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),//gets the directory name of the current file
     "../../schema.sql"//path to the schema.sql file
